@@ -5,8 +5,13 @@ use std::path::PathBuf;
 
 impl VMMConfig {
     /// Create the builder to generate a vmm config
-    pub fn builder(num_vcpus: u8, mem_size_mb: u32, kernel_path: &str) -> VMMConfigBuilder {
-        VMMConfigBuilder::new(num_vcpus, mem_size_mb, kernel_path)
+    pub fn builder(
+        num_vcpus: u8,
+        mem_size_mb: u32,
+        kernel_path: &str,
+        cmdline: &str,
+    ) -> VMMConfigBuilder {
+        VMMConfigBuilder::new(num_vcpus, mem_size_mb, kernel_path, cmdline)
     }
 }
 
@@ -19,6 +24,7 @@ pub struct VMMConfigBuilder {
     verbose: i32,
     console: Option<String>,
     tap: Option<config::NetConfig>,
+    cmdline: String,
 }
 
 impl VMMConfigBuilder {
@@ -31,17 +37,19 @@ impl VMMConfigBuilder {
             verbose: self.verbose,
             console: self.console,
             tap: self.tap,
+            cmdline: self.cmdline,
         }
     }
 }
 
 impl VMMConfigBuilder {
     // TODO: Maybe add a management of errors (e.g. checking kernel_path exists here)
-    pub fn new(num_vcpus: u8, mem_size_mb: u32, kernel_path: &str) -> Self {
+    pub fn new(num_vcpus: u8, mem_size_mb: u32, kernel_path: &str, cmdline: &str) -> Self {
         VMMConfigBuilder {
             cpus: num_vcpus,
             memory: mem_size_mb,
             kernel: PathBuf::from(kernel_path),
+            cmdline: String::from(cmdline),
             ..Default::default()
         }
     }

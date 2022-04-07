@@ -28,6 +28,9 @@ pub struct VMMConfig {
 
     /// Define a TAP interface name used to give network to the guest
     pub tap: Option<NetConfig>,
+
+    /// Define the command line used by the kernel
+    pub cmdline: String,
 }
 
 impl TryFrom<Option<String>> for NetConfig {

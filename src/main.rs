@@ -30,6 +30,15 @@ struct VMMOpts {
     /// Define a TAP interface name used to give network to the guest
     #[clap(short, long)]
     tap: Option<String>,
+
+    /// Define the command line used by the kernel
+    /// (see https://www.kernel.org/doc/html/v4.14/admin-guide/kernel-parameters.html)
+    #[clap(
+        short,
+        long,
+        default_value = "console=ttyS0 i8042.nokbd reboot=k panic=1 pci=off"
+    )]
+    cmdline: String,
 }
 
 #[derive(Debug)]
@@ -47,6 +56,7 @@ impl From<VMMOpts> for VMMConfig {
             .tap(opts.tap)
             .console(opts.console)
             .verbose(opts.verbose)
+            .cmdline(opts.cmdline)
             .build()
     }
 }
@@ -84,6 +94,7 @@ mod tests {
         let tap = Some(String::from("tap0"));
         let console = Some(String::from("console.log"));
         let kernel = String::from("kernel_file");
+        let cmdline = String::from("console=ttyS0 i8042.nokbd reboot=k panic=1 pci=off");
 
         let opts: VMMOpts = VMMOpts {
             kernel: kernel.clone(),
@@ -92,6 +103,7 @@ mod tests {
             verbose: 0,
             console: console.clone(),
             tap: tap.clone(),
+            cmdline: cmdline.clone(),
         };
         let cfg = VMMConfig::from(opts);
 
@@ -105,5 +117,6 @@ mod tests {
         assert_eq!(0, cfg.verbose);
         assert_eq!(console, cfg.console);
         assert_eq!(tap.unwrap(), net_config.unwrap().tap_name);
+        assert_eq!(cmdline, cfg.cmdline);
     }
 }

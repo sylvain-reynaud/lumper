@@ -43,8 +43,6 @@ const HIMEM_START: u64 = 0x0010_0000; // 1 MB
 
 /// Address where the kernel command line is written.
 const CMDLINE_START: u64 = 0x0002_0000;
-// Default command line
-const CMDLINE: &str = "console=ttyS0 i8042.nokbd reboot=k panic=1 pci=off";
 
 fn add_e820_entry(
     params: &mut boot_params,
@@ -109,6 +107,7 @@ pub fn build_bootparams(
 pub fn kernel_setup(
     guest_memory: &GuestMemoryMmap,
     kernel_path: PathBuf,
+    cmdline_str: &str,
 ) -> Result<KernelLoaderResult> {
     let mut kernel_image = File::open(kernel_path).map_err(Error::IO)?;
     let zero_page_addr = GuestAddress(ZEROPG_START);
@@ -127,11 +126,11 @@ pub fn kernel_setup(
 
     // Add the kernel command line to the boot parameters.
     bootparams.hdr.cmd_line_ptr = CMDLINE_START as u32;
-    bootparams.hdr.cmdline_size = CMDLINE.len() as u32 + 1;
+    bootparams.hdr.cmdline_size = cmdline_str.len() as u32 + 1;
 
     // Load the kernel command line into guest memory.
-    let mut cmdline = Cmdline::new(CMDLINE.len() + 1);
-    cmdline.insert_str(CMDLINE).map_err(Error::Cmdline)?;
+    let mut cmdline = Cmdline::new(cmdline_str.len() + 1);
+    cmdline.insert_str(cmdline_str).map_err(Error::Cmdline)?;
     load_cmdline(
         guest_memory,
         GuestAddress(CMDLINE_START),
