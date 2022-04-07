@@ -30,6 +30,13 @@ struct VMMOpts {
     /// Define a TAP interface name used to give network to the guest
     #[clap(short, long)]
     tap: Option<String>,
+
+    /// Define the command line used by the kernel
+    #[clap(
+        long,
+        default_value = "console=ttyS0 i8042.nokbd reboot=k panic=1 pci=off"
+    )]
+    cmdline: String,
 }
 
 #[derive(Debug)]
@@ -41,14 +48,20 @@ pub enum Error {
     VmmRun(vmm::Error),
 
     ConfigParse(config::Error),
+
+    Cmdline(linux_loader::cmdline::Error),
 }
 
 impl TryFrom<VMMOpts> for VMMConfig {
     type Error = Error;
 
     fn try_from(opts: VMMOpts) -> Result<Self, Error> {
+        // Create the KernelConfig
+        let kernel = config::KernelConfig::new(opts.kernel, Some(opts.cmdline))
+            .map_err(Error::ConfigParse)?;
+
         let builder =
-            VMMConfig::builder(opts.cpus, opts.memory, opts.kernel).map_err(Error::ConfigParse)?;
+            VMMConfig::builder(opts.cpus, opts.memory, kernel).map_err(Error::ConfigParse)?;
 
         Ok(builder
             .tap(opts.tap)
@@ -82,6 +95,7 @@ fn main() -> Result<(), Error> {
 #[cfg(test)]
 mod tests {
     use crate::VMMOpts;
+    use linux_loader::cmdline::Cmdline;
     use vmm::config::{KernelConfig, NetConfig, VMMConfig};
 
     // Test whether the configuration is properly parsed from clap options
@@ -92,6 +106,10 @@ mod tests {
         let console = Some(String::from("console.log"));
         let kernel = String::from("./Cargo.toml");
 
+        let cmdline_str = String::from("console=ttyS0 i8042.nokbd reboot=k panic=1 pci=off");
+        let mut cmdline = Cmdline::new(cmdline_str.len() + 1);
+        cmdline.insert_str(cmdline_str.clone()).unwrap();
+
         let opts: VMMOpts = VMMOpts {
             kernel: kernel.clone(),
             cpus: 1,
@@ -99,6 +117,7 @@ mod tests {
             verbose: 0,
             console: console.clone(),
             tap: Some(tap.clone()),
+            cmdline: cmdline_str,
         };
         let cfg = VMMConfig::try_from(opts)?;
 
@@ -108,6 +127,7 @@ mod tests {
         // VMMOpts struct just for this test
         let kernel_config: KernelConfig = kernel.try_into().unwrap();
         assert_eq!(kernel_config, cfg.kernel);
+        assert_eq!(cmdline, cfg.kernel.cmdline);
         assert_eq!(1, cfg.cpus);
         assert_eq!(256, cfg.memory);
         assert_eq!(0, cfg.verbose);
@@ -122,6 +142,7 @@ mod tests {
         let tap = Some(String::from("tap0"));
         let console = Some(String::from("console.log"));
         let kernel = String::from("./Cargo.tomle");
+        let cmdline_str = String::from("console=ttyS0 i8042.nokbd reboot=k panic=1 pci=off");
 
         let opts: VMMOpts = VMMOpts {
             kernel,
@@ -130,6 +151,7 @@ mod tests {
             verbose: 0,
             console,
             tap,
+            cmdline: cmdline_str,
         };
         let cfg = VMMConfig::try_from(opts);
         assert!(cfg.is_err());

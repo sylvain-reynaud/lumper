@@ -145,6 +145,7 @@ name = "lumper"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "linux-loader",
  "vmm",
 ]
 

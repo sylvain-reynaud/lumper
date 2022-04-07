@@ -28,7 +28,7 @@ pub struct NetConfig {
 /// VMM configuration.
 #[derive(Debug, Default)]
 pub struct VMMConfig {
-    /// Linux kernel path
+    /// Linux kernel path and its commandline
     pub kernel: KernelConfig,
 
     /// Number of virtual CPUs assigned to the guest
@@ -63,14 +63,14 @@ impl TryFrom<String> for KernelConfig {
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         let path = PathBuf::from(value);
+        if !path.exists() {
+            return Err(Error::KernelConfig("File does not exist".to_string()));
+        }
+
         let kernel = KernelConfig {
             kernel_path: path.clone(),
             ..Default::default()
         };
-
-        if !path.exists() {
-            return Err(Error::KernelConfig("File does not exist".to_string()));
-        }
 
         Ok(kernel)
     }
